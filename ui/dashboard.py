@@ -9,7 +9,7 @@ class Dashboard(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SecureLog Analyzer")
-        self.setGeometry(100, 100, 1300, 800)
+        self.setGeometry(100, 100, 1300, 850)
         self.setStyleSheet("background-color: #071826; color: white;")
 
         # ================= ROOT LAYOUT (VERTICAL) =================
@@ -33,7 +33,8 @@ class Dashboard(QWidget):
 
         logo = QLabel()
         pixmap = QPixmap("assets/securelog-logo.png")
-        logo.setPixmap(pixmap.scaled(90,90, Qt.AspectRatioMode.KeepAspectRatio))
+        if not pixmap.isNull():
+            logo.setPixmap(pixmap.scaled(90, 90, Qt.AspectRatioMode.KeepAspectRatio))
         logo.setFixedSize(100, 100)
 
         title_layout = QVBoxLayout()
@@ -54,7 +55,7 @@ class Dashboard(QWidget):
         right_section = QHBoxLayout()
 
         settings_btn = QPushButton("⚙ Settings")
-        about_btn = QPushButton("ℹ    About")
+        about_btn = QPushButton("ℹ     About")
 
         for btn in [settings_btn, about_btn]:
             btn.setFixedWidth(120)
@@ -85,9 +86,8 @@ class Dashboard(QWidget):
             }
         """)
 
-        # layout belongs to the FRAME, not the main window
         sidebar_layout = QVBoxLayout(sidebar_frame)
-        sidebar_layout.setContentsMargins(15,20,15,20)
+        sidebar_layout.setContentsMargins(15, 20, 15, 20)
         sidebar_layout.setSpacing(12)
 
         menu_items = [
@@ -102,13 +102,11 @@ class Dashboard(QWidget):
             icon_color = "white" if i == 0 else "#9CA3AF"
             icon = qta.icon(icon_name, color=icon_color)
 
-
             btn = QPushButton(f"  {name}")
             btn.setIcon(icon)
-            btn.setIconSize(QSize(20,20))
+            btn.setIconSize(QSize(20, 20))
 
             if i == 0:
-                #active button
                 btn.setStyleSheet("""
                     background-color: #1E3A5F;
                     color: white;
@@ -118,7 +116,6 @@ class Dashboard(QWidget):
                     text-align: left;
                 """)
             else:
-                #normal buttons
                 btn.setStyleSheet("""
                     QPushButton {
                         background-color: #0F253A;
@@ -130,90 +127,101 @@ class Dashboard(QWidget):
                         background-color: #1A2D45;
                     }
                 """)
-
             sidebar_layout.addWidget(btn)
 
         sidebar_layout.addStretch()
-# ================= SIDEBAR STATUS CONTAINER =================
-        # Create the container frame
+
+        # ================= SIDEBAR STATUS CONTAINER =================
         status_container = QFrame()
         status_container.setStyleSheet("""
             QFrame {
-                background-color: #1A2D45; /* Slightly darker than sidebar or same as header */
+                background-color: #1A2D45;
                 border-radius: 12px;
                 border: none;
             }
         """)
         status_container_layout = QVBoxLayout(status_container)
 
-        # Create the status label
-        # We split these so we can style the dot and the text better
         system_label = QLabel("System Status")
-        system_label.setStyleSheet("""
-            color: #9CA3AF; 
-            font-size: 11px; 
-            font-weight: bold;
-            background: transparent;
-        """)
+        system_label.setStyleSheet("color: #9CA3AF; font-size: 11px; font-weight: bold; background: transparent;")
 
         status_label = QLabel("● Ready")
-        status_label.setStyleSheet("""
-            color: #4CAF50; 
-            font-size: 12px; 
-            font-weight: bold;
-            background: transparent;
-        """)
+        status_label.setStyleSheet("color: #4CAF50; font-size: 12px; font-weight: bold; background: transparent;")
         
         version_label = QLabel("Version 1.0.0")
-        version_label.setStyleSheet("""
-            color: #9CA3AF; 
-            font-size: 11px;
-            background: transparent;
-        """)
+        version_label.setStyleSheet("color: #9CA3AF; font-size: 11px; background: transparent;")
 
         status_container_layout.addWidget(system_label)
         status_container_layout.addWidget(status_label)
         status_container_layout.addWidget(version_label)
 
-        # Add the container to your existing sidebar layout
         sidebar_layout.addWidget(status_container)
 
-        # ================= CONTENT =================
-        content = QVBoxLayout()
-        content.setSpacing(30)
-        content.setContentsMargins(20, 20, 20, 20)
+        # ================= SCROLLABLE CONTENT BODY =================
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #0B1A2B;
+                width: 10px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: #1A2D45;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+            }
+        """)
 
-        # UPLOAD CARD CONTAINER
-        upload_card = QFrame()
-        upload_card.setStyleSheet("""
+        content_widget = QWidget()
+        content_widget.setStyleSheet("background-color: transparent;")
+        content = QVBoxLayout(content_widget)
+        content.setSpacing(25)  
+        content.setContentsMargins(10, 10, 10, 10)
+
+        # ======== UPLOAD CARD CONTAINER ==========
+        upload_container = QFrame()
+        upload_container.setStyleSheet("""
             QFrame {
                 background-color: #0B1A2B;
-                border-radius: 15px;
+                border-radius: 20px;
                 border: 0.5px solid #3B82F6;
             }
         """)
 
-        upload_card_layout = QHBoxLayout(upload_card)
-        upload_card_layout.setContentsMargins(20, 20, 20, 20)
+        upload_card_layout = QGridLayout(upload_container)
+        upload_card_layout.setContentsMargins(25, 20, 25, 25)
         upload_card_layout.setSpacing(15)
 
-        # Drag & Drop Box
+        upload_header = QLabel("Upload Log File")
+        upload_header.setStyleSheet("font-size: 18px; font-weight: bold; color: white; border: none; background: transparent;")
+        upload_card_layout.addWidget(upload_header, 0, 0, 1, 2)
+
         upload_box = QLabel("⬆️ Drag & drop your log file here\n.txt, .log, .csv (Max: 50MB)")
         upload_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        upload_box.setMinimumHeight(130)  
         upload_box.setStyleSheet("""
-            background-color: #1A2D45;
-            color: #9CA3AF;
-            font-size: 22px;
-            padding: 30px;
-            border-radius: 12px;
-            border: 2px dashed #3B82F6;
+            QLabel {
+                background-color: #1A2D45;
+                color: #9CA3AF;
+                font-size: 16px;
+                border-radius: 12px;
+                border: 1px dashed #3B82F6;
+            }
         """)
 
-        # Button layout
         button_layout = QVBoxLayout()
         button_layout.setSpacing(10)
 
-        # Common style for both buttons
         btn_style = """
             QPushButton {
                 background-color: #3B82F6;
@@ -221,103 +229,265 @@ class Dashboard(QWidget):
                 font-weight: bold;
                 font-size: 14px;
                 color: white;
+                border: none;
             }
-            QPushButton:hover {
-                background-color: #2563EB;
-            }
+            QPushButton:hover { background-color: #2563EB; }
         """
 
         browse_btn = QPushButton("Browse File")
-        browse_btn.setFixedHeight(45)
-        browse_btn.setFixedWidth(150)
+        browse_btn.setFixedSize(150, 45)
         browse_btn.setStyleSheet(btn_style)
 
         analyze_btn = QPushButton("Analyze Logs")
-        analyze_btn.setFixedHeight(45)
-        analyze_btn.setFixedWidth(150)
+        analyze_btn.setFixedSize(150, 45)
         analyze_btn.setStyleSheet(btn_style.replace("#3B82F6", "#10B981").replace("#2563EB", "#059669"))
 
         button_layout.addWidget(browse_btn)
         button_layout.addWidget(analyze_btn)
 
-        # Adding components to the upload card layout
-        upload_card_layout.addWidget(upload_box, 4)
-        upload_card_layout.addWidget(browse_btn, 1)
-        upload_card_layout.addWidget(analyze_btn, 1)
+        upload_card_layout.addWidget(upload_box, 1, 0)
+        upload_card_layout.addLayout(button_layout, 1, 1)
+        upload_card_layout.setColumnStretch(0, 1)  
 
-        # Adding whole card to the content layout
-        content.addWidget(upload_card)
+        content.addWidget(upload_container)
 
-        # STATS
-        stats_layout = QHBoxLayout()
-
-        def stat_card(text, color):
-            card = QLabel(text)
-            card.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            card.setFixedHeight(110)
-            card.setStyleSheet(f"""
-                background-color: {color};
-                border-radius: 12px;
-                font-weight: bold;
-            """)
-            return card
-
-        stats_layout.addWidget(stat_card("Total Entries\n500", "#2A4365"))
-        stats_layout.addWidget(stat_card("Successful Logins\n359", "#2F855A"))
-        stats_layout.addWidget(stat_card("Failed Logins\n141", "#9B2C2C"))
-        stats_layout.addWidget(stat_card("Suspicious Events\n94", "#B7791F"))
-        stats_layout.addWidget(stat_card("Unique IPs\n63", "#6B46C1"))
-
-        content.addLayout(stats_layout)
-
-        # BOTTOM
-        bottom = QHBoxLayout()
-
-        alerts = QVBoxLayout()
-        alerts.addWidget(QLabel("Alerts"))
-
-        for txt in ["Multiple Failed Logins", "Suspicious IP Activity", "Unusual Login Time", "Access Denied"]:
-            lbl = QLabel(txt)
-            lbl.setStyleSheet("""
-                background-color: #1A2D45;
-                padding: 12px;
-                border-radius: 8px;
-            """)
-            alerts.addWidget(lbl)
-
-        chart_layout = QVBoxLayout()
-        chart_layout.addWidget(QLabel("Log Activity Over Time"))
-
-        chart = QLabel("Chart will appear here")
-        chart.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        chart.setStyleSheet("""
-            background-color: #1A2D45;
-            border-radius: 12px;
-            padding: 120px;
+        # ======== QUICK STATS CONTAINER ==========
+        quick_stats_container = QFrame()
+        quick_stats_container.setStyleSheet("""
+            QFrame {
+                background-color: #0B1A2B;
+                border-radius: 20px;
+                border: 0.5px solid #3B82F6;
+            }
         """)
 
-        chart_layout.addWidget(chart)
+        outer_layout = QVBoxLayout(quick_stats_container)
+        outer_layout.setContentsMargins(20, 15, 20, 20)
 
-        bottom.addLayout(alerts, 1)
-        bottom.addLayout(chart_layout, 2)
+        stats_header = QLabel("Quick Stats")
+        stats_header.setStyleSheet("font-size: 18px; font-weight: bold; color: white; border: none;")
+        outer_layout.addWidget(stats_header)
+
+        stats_row_layout = QHBoxLayout()
+        stats_row_layout.setSpacing(15)
+
+        def create_stat_card(title, value, subtitle, icon_name, color, bg_color):
+            card = QFrame()
+            card.setFixedHeight(120)
+            card.setStyleSheet(f"""
+                background-color: {bg_color};
+                border-radius: 12px;
+                border: 1px solid {color};
+            """)
+
+            card_layout = QHBoxLayout(card)
+            card_layout.setContentsMargins(15, 10, 15, 10)
+
+            icon_label = QLabel()
+            icon = qta.icon(icon_name, color=color)
+            icon_label.setPixmap(icon.pixmap(35, 35))
+            icon_label.setStyleSheet("background: transparent; border: none;")
+            icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            text_container = QVBoxLayout()
+            text_container.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            text_container.setSpacing(2)
+
+            title_label = QLabel(title)
+            title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            title_label.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold; background: transparent; border: none;")
+
+            value_label = QLabel(value)
+            value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            value_label.setStyleSheet("color: white; font-size: 24px; font-weight: bold; background: transparent; border: none;")
+
+            subtitle_label = QLabel(subtitle)
+            subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            subtitle_label.setStyleSheet(f"color: {color}; font-size: 12px; font-weight: bold; background: transparent; border: none;")
+
+            text_container.addWidget(title_label)
+            text_container.addWidget(value_label)
+            text_container.addWidget(subtitle_label)
+
+            card_layout.addWidget(icon_label, 1)
+            card_layout.addLayout(text_container, 2)
+
+            return card
+
+        stats_row_layout.addWidget(create_stat_card("Total Entries", "500", "All log records", "fa5s.file-alt", "#3B82F6", "#172A45"))
+        stats_row_layout.addWidget(create_stat_card("Successful Logins", "359", "70.1% ↑", "fa5s.check-circle", "#10B981", "#064E3B"))
+        stats_row_layout.addWidget(create_stat_card("Failed Logins", "141", "29.9% ↓", "fa5s.times-circle", "#EF4444", "#451A1A"))
+        stats_row_layout.addWidget(create_stat_card("Suspicious Events", "94", "10.3% ⚠", "fa5s.exclamation-triangle", "#F59E0B", "#453015"))
+        stats_row_layout.addWidget(create_stat_card("Unique IPs", "63", "Found", "fa5s.globe", "#8B5CF6", "#2D1A45"))
+
+        outer_layout.addLayout(stats_row_layout)
+        content.addWidget(quick_stats_container)
+
+        # ================= BOTTOM SPLIT ROW =================
+        bottom = QHBoxLayout()
+        bottom.setSpacing(20)
+
+        # --- ALERTS CONTAINER ---
+        alerts_container = QFrame()
+        alerts_container.setStyleSheet("""
+            QFrame {
+                background-color: #0B1A2B;
+                border: 1px solid #1F2A44;
+                border-radius: 20px;
+            }
+        """)
+        
+        alerts_outer_layout = QVBoxLayout(alerts_container)
+        alerts_outer_layout.setContentsMargins(20, 20, 20, 20)
+        alerts_outer_layout.setSpacing(15)
+
+        header_row = QHBoxLayout()
+        alerts_title = QLabel("Alerts")
+        alerts_title.setStyleSheet("font-size: 24px; font-weight: bold; color: white; border: none; background: transparent;")
+        
+        view_all_btn = QPushButton("View All")
+        view_all_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        view_all_btn.setStyleSheet("""
+            QPushButton {
+                color: #3B82F6;
+                font-size: 14px;
+                font-weight: bold;
+                border: none;
+                background: transparent;
+            }
+            QPushButton:hover { color: #60A5FA; text-decoration: underline; }
+        """)
+        header_row.addWidget(alerts_title)
+        header_row.addStretch()
+        header_row.addWidget(view_all_btn)
+        alerts_outer_layout.addLayout(header_row)
+
+        def create_alert_item(title, details, time_str, priority_text, main_color, bg_color):
+            alert_card = QFrame()
+            alert_card.setFixedHeight(80) 
+            alert_card.setStyleSheet(f"background-color: {bg_color}; border-radius: 12px; border: none;")
+            
+            card_layout = QHBoxLayout(alert_card)
+            card_layout.setContentsMargins(0, 0, 15, 0)
+            card_layout.setSpacing(15)
+
+            accent_bar = QFrame()
+            accent_bar.setFixedWidth(6)
+            accent_bar.setStyleSheet(f"""
+                background-color: {main_color};
+                border-top-left-radius: 12px;
+                border-bottom-left-radius: 12px;
+                border: none;
+            """)
+            
+            dot_indicator = QLabel()
+            dot_indicator.setFixedSize(14, 14)
+            dot_indicator.setStyleSheet(f"background-color: {main_color}; border-radius: 7px; border: none;")
+
+            text_container = QWidget()
+            text_container.setStyleSheet("background: transparent; border: none;")
+            text_layout = QVBoxLayout(text_container)
+            text_layout.setContentsMargins(0, 5, 0, 5)
+            text_layout.setSpacing(2)
+            text_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
+            t_lbl = QLabel(title)
+            t_lbl.setStyleSheet("color: white; font-size: 15px; font-weight: bold; background: transparent;")
+            
+            d_lbl = QLabel(details)
+            d_lbl.setStyleSheet("color: #D1D5DB; font-size: 11px; background: transparent;")
+            
+            time_lbl = QLabel(time_str)
+            time_lbl.setStyleSheet("color: #6B7280; font-size: 10px; background: transparent;")
+
+            text_layout.addWidget(t_lbl)
+            text_layout.addWidget(d_lbl)
+            text_layout.addWidget(time_lbl)
+
+            badge = QPushButton(priority_text)
+            badge.setFixedSize(115, 26)
+            badge.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {main_color}; 
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 10px;
+                    font-weight: bold;
+                }}
+            """)
+
+            card_layout.addWidget(accent_bar)
+            card_layout.addWidget(dot_indicator, alignment=Qt.AlignmentFlag.AlignVCenter)
+            card_layout.addWidget(text_container, stretch=1)
+            card_layout.addWidget(badge, alignment=Qt.AlignmentFlag.AlignVCenter)
+            
+            return alert_card
+
+        alerts_list_layout = QVBoxLayout()
+        alerts_list_layout.setSpacing(10)
+
+        alerts_list_layout.addWidget(create_alert_item("Multiple Failed Logins", "User 'admin' has 5 failed login attempts from 192.168.1.15", "10:24 AM", "High Priority", "#EF4444", "#2D1A1E"))
+        alerts_list_layout.addWidget(create_alert_item("Suspicious IP Activity", "IP 203.0.113.45 has failed logins for 3 users", "10:20 AM", "Medium Priority", "#F59E0B", "#2D2415"))
+        alerts_list_layout.addWidget(create_alert_item("Unusual Login Time", "User 'John_Doe' logged in outside business hours (02:17 AM)", "02:17 AM", "Low Priority", "#10B981", "#152D20"))
+        alerts_list_layout.addWidget(create_alert_item("Access Denied", "Guest user attempted to access restricted file", "11:26 PM", "Medium Priority", "#F59E0B", "#2D2415"))
+
+        alerts_outer_layout.addLayout(alerts_list_layout)
+
+        # --- CHART CONTAINER ---
+        chart_container = QFrame()
+        chart_container.setStyleSheet("""
+            QFrame {
+                background-color: #0B1A2B;
+                border: 1px solid #1F2A44;
+                border-radius: 20px;
+            }
+        """)
+        chart_outer_layout = QVBoxLayout(chart_container)
+        chart_outer_layout.setContentsMargins(20, 20, 20, 20)
+        
+        chart_title = QLabel("Log Activity Over Time")
+        chart_title.setStyleSheet("font-size: 18px; font-weight: bold; color: white; border: none; background: transparent;")
+        
+        chart_placeholder = QLabel("Chart will appear here")
+        chart_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        chart_placeholder.setMinimumHeight(350) # Gives chart box a stable aspect ratio anchor
+        chart_placeholder.setStyleSheet("""
+            background-color: #1A2D45;
+            border-radius: 12px;
+            color: #9CA3AF;
+        """)
+
+        chart_outer_layout.addWidget(chart_title)
+        chart_outer_layout.addWidget(chart_placeholder, stretch=1)
+
+        bottom.addWidget(alerts_container, 1)
+        bottom.addWidget(chart_container, 1)  
 
         content.addLayout(bottom)
+        
+        # CRITICAL FIX: Stops widgets from expanding to ridiculous heights when maximized
+        content.addStretch(1) 
 
-        # ================= BODY (SIDEBAR + CONTENT) =================
+        scroll_area.setWidget(content_widget)
+
+        # ================= BODY ASSEMBLER (SIDEBAR + SCROLL CONTENT) =================
         body_layout = QHBoxLayout()
-        body_layout.setContentsMargins(10, 10, 10, 10)
+        body_layout.setContentsMargins(15, 15, 15, 15)
+        body_layout.setSpacing(15)
 
-        body_layout.addWidget(sidebar_frame,1)
-        body_layout.addLayout(content, 4)
+        body_layout.addWidget(sidebar_frame, 0) 
+        body_layout.addWidget(scroll_area, 1)   
 
-        # ================= FINAL =================
+        # ================= FINAL GLOBAL PACKING =================
         main_layout.addWidget(header_container)
         main_layout.addLayout(body_layout)
 
         self.setLayout(main_layout)
 
 
-app = QApplication(sys.argv)
-window = Dashboard()
-window.show()
-sys.exit(app.exec())
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = Dashboard()
+    window.show()
+    sys.exit(app.exec())
