@@ -12,12 +12,12 @@ class Dashboard(QWidget):
         self.setGeometry(100, 100, 1300, 850)
         self.setStyleSheet("background-color: #071826; color: white;")
 
-        # ================= ROOT LAYOUT (VERTICAL) =================
+        # ROOT LAYOUT 
         main_layout = QVBoxLayout()
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # ================= HEADER =================
+        #  HEADER 
         header_container = QFrame()
         header_container.setFixedHeight(90)
         header_container.setStyleSheet("""
@@ -75,7 +75,7 @@ class Dashboard(QWidget):
 
         header_container.setLayout(header_layout)
 
-        # ================= SIDEBAR CONTAINER =================
+        # SIDEBAR CONTAINER 
         sidebar_frame = QFrame()
         sidebar_frame.setFixedWidth(260)
         sidebar_frame.setStyleSheet("""
@@ -131,7 +131,7 @@ class Dashboard(QWidget):
 
         sidebar_layout.addStretch()
 
-        # ================= SIDEBAR STATUS CONTAINER =================
+        #  SIDEBAR STATUS CONTAINER 
         status_container = QFrame()
         status_container.setStyleSheet("""
             QFrame {
@@ -157,7 +157,7 @@ class Dashboard(QWidget):
 
         sidebar_layout.addWidget(status_container)
 
-        # ================= SCROLLABLE CONTENT BODY =================
+        #  SCROLLABLE CONTENT BODY 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("""
@@ -188,7 +188,7 @@ class Dashboard(QWidget):
         content.setSpacing(25)  
         content.setContentsMargins(10, 10, 10, 10)
 
-        # ======== UPLOAD CARD CONTAINER ==========
+        #  UPLOAD CARD CONTAINER 
         upload_container = QFrame()
         upload_container.setStyleSheet("""
             QFrame {
@@ -251,7 +251,7 @@ class Dashboard(QWidget):
 
         content.addWidget(upload_container)
 
-        # ======== QUICK STATS CONTAINER ==========
+        # QUICK STATS CONTAINER 
         quick_stats_container = QFrame()
         quick_stats_container.setStyleSheet("""
             QFrame {
@@ -323,11 +323,11 @@ class Dashboard(QWidget):
         outer_layout.addLayout(stats_row_layout)
         content.addWidget(quick_stats_container)
 
-        # ================= BOTTOM SPLIT ROW =================
+        # BOTTOM SPLIT ROW 
         bottom = QHBoxLayout()
         bottom.setSpacing(20)
 
-        # --- ALERTS CONTAINER ---
+        # ALERTS CONTAINER 
         alerts_container = QFrame()
         alerts_container.setStyleSheet("""
             QFrame {
@@ -434,7 +434,7 @@ class Dashboard(QWidget):
 
         alerts_outer_layout.addLayout(alerts_list_layout)
 
-        # --- CHART CONTAINER ---
+        #  CHART CONTAINER
         chart_container = QFrame()
         chart_container.setStyleSheet("""
             QFrame {
@@ -451,7 +451,7 @@ class Dashboard(QWidget):
         
         chart_placeholder = QLabel("Chart will appear here")
         chart_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        chart_placeholder.setMinimumHeight(350) # Gives chart box a stable aspect ratio anchor
+        chart_placeholder.setMinimumHeight(350) 
         chart_placeholder.setStyleSheet("""
             background-color: #1A2D45;
             border-radius: 12px;
@@ -466,12 +466,11 @@ class Dashboard(QWidget):
 
         content.addLayout(bottom)
         
-        # CRITICAL FIX: Stops widgets from expanding to ridiculous heights when maximized
         content.addStretch(1) 
 
         scroll_area.setWidget(content_widget)
 
-        # ================= BODY ASSEMBLER (SIDEBAR + SCROLL CONTENT) =================
+        # SIDEBAR + SCROLL CONTENT
         body_layout = QHBoxLayout()
         body_layout.setContentsMargins(15, 15, 15, 15)
         body_layout.setSpacing(15)
@@ -479,7 +478,7 @@ class Dashboard(QWidget):
         body_layout.addWidget(sidebar_frame, 0) 
         body_layout.addWidget(scroll_area, 1)   
 
-        # ================= FINAL GLOBAL PACKING =================
+        #  FINAL GLOBAL PACKING 
         main_layout.addWidget(header_container)
         main_layout.addLayout(body_layout)
 
