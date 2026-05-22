@@ -3,6 +3,7 @@ import qtawesome as qta
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QPixmap
+from log_viewer import LogViewer
 
 
 class Dashboard(QWidget):
@@ -11,6 +12,8 @@ class Dashboard(QWidget):
         self.setWindowTitle("SecureLog Analyzer")
         self.setGeometry(100, 100, 1300, 850)
         self.setStyleSheet("background-color: #071826; color: white;")
+
+        self.sidebar_buttons = []
 
         # ROOT LAYOUT 
         main_layout = QVBoxLayout()
@@ -127,7 +130,9 @@ class Dashboard(QWidget):
                         background-color: #1A2D45;
                     }
                 """)
+            btn.clicked.connect(lambda checked, idx=i: self.switch_page(idx))
             sidebar_layout.addWidget(btn)
+            self.sidebar_buttons.append(btn)
 
         sidebar_layout.addStretch()
 
@@ -357,6 +362,9 @@ class Dashboard(QWidget):
             }
             QPushButton:hover { color: #60A5FA; text-decoration: underline; }
         """)
+
+        view_all_btn.clicked.connect(lambda: self.switch_page(1))  
+
         header_row.addWidget(alerts_title)
         header_row.addStretch()
         header_row.addWidget(view_all_btn)
@@ -470,19 +478,56 @@ class Dashboard(QWidget):
 
         scroll_area.setWidget(content_widget)
 
+        self.main_pages = QStackedWidget()
+        self.main_pages.addWidget(scroll_area)
+        self.log_viewer_page = LogViewer()
+        self.main_pages.addWidget(self.log_viewer_page)
+
         # SIDEBAR + SCROLL CONTENT
         body_layout = QHBoxLayout()
         body_layout.setContentsMargins(15, 15, 15, 15)
         body_layout.setSpacing(15)
 
         body_layout.addWidget(sidebar_frame, 0) 
-        body_layout.addWidget(scroll_area, 1)   
+        body_layout.addWidget(self.main_pages, 1)   
 
         #  FINAL GLOBAL PACKING 
         main_layout.addWidget(header_container)
         main_layout.addLayout(body_layout)
 
         self.setLayout(main_layout)
+
+    # NAVIGATION FUNCTION
+    def switch_page(self, index):
+        if index >= self.main_pages.count():
+            return
+        
+        self.main_pages.setCurrentIndex(index)
+
+        for i, btn in enumerate(self.sidebar_buttons):
+            if i == index:
+                btn.setStyleSheet("""
+                    background-color: #1E3A5F;
+                    color: white;
+                    font-weight: bold;
+                    padding: 12px;
+                    border-radius: 10px;
+                    text-align: left;
+                """)
+            else:
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #0F253A;
+                        color: #9CA3AF;
+                        padding: 12px;
+                        border-radius: 10px;
+                        text-align: left;
+                    }
+                    QPushButton:hover {
+                        background-color: #1A2D45;
+                        color: white;
+                    }       
+                """)
 
 
 if __name__ == "__main__":
