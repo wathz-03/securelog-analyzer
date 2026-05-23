@@ -179,6 +179,8 @@ class LogViewer(QWidget):
 
         # Wire up connection hook
         self.table.itemSelectionChanged.connect(self.display_log_details)
+        self.search_input.textChanged.connect(self.apply_filters)
+        self.level_combo.currentTextChanged.connect(self.apply_filters)
 
         self.populate_mock_data()
 
@@ -241,6 +243,36 @@ class LogViewer(QWidget):
         </table>
         """
         self.details_text_box.setHtml(html_details)
+
+    def apply_filters(self):
+        search_query = self.search_input.text().lower().strip()
+        selected_level = self.level_combo.currentText().strip()
+
+        for row in range(self.table.rowCount()):
+            matches_search = False
+            matches_level = False
+
+            combined_row_text = ""
+            for col in range(self.table.columnCount()):
+                item = self.table.item(row, col)
+                if item:
+                    combined_row_text += item.text().lower() + " "
+
+            if not search_query or search_query in combined_row_text:
+                matches_search = True
+
+            level_item = self.table.item(row, 1)
+            row_level_value = level_item.text() if level_item else ""
+
+            if selected_level == "All Levels" or selected_level == "":
+                matches_level = True
+            elif selected_level.upper() == row_level_value.upper():
+                matches_level = True
+
+            if matches_search and matches_level:
+                self.table.setRowHidden(row, False)
+            else:
+                self.table.setRowHidden(row, True)
 
 
 if __name__ == "__main__":
