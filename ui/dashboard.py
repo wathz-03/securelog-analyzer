@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QPixmap
 from log_viewer import LogViewer
+from analysis import AnalysisPage
 
 
 class Dashboard(QWidget):
@@ -473,15 +474,18 @@ class Dashboard(QWidget):
         bottom.addWidget(chart_container, 1)  
 
         content.addLayout(bottom)
-        
         content.addStretch(1) 
 
         scroll_area.setWidget(content_widget)
 
         self.main_pages = QStackedWidget()
         self.main_pages.addWidget(scroll_area)
+
         self.log_viewer_page = LogViewer()
         self.main_pages.addWidget(self.log_viewer_page)
+        
+        self.analysis_page = AnalysisPage()
+        self.main_pages.addWidget(self.analysis_page)
 
         # SIDEBAR + SCROLL CONTENT
         body_layout = QHBoxLayout()
