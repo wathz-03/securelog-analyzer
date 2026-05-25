@@ -40,7 +40,7 @@ class AnalysisPage(QWidget):
                 color: white;
                 font-weight: bold;
                 font-size: 12px;
-                border: none;
+                border: 0.5px solid #3B82F6;
                 border-radius: 6px;
                 padding: 8px 16px;
             }
@@ -56,7 +56,7 @@ class AnalysisPage(QWidget):
         stats_container.setStyleSheet("""
             QFrame {
                 background-color: #0E1E31;
-                border: 1px solid #1E3654;
+                border: 0.5px solid #3B82F6;
                 border-radius: 8px;
             }
         """)
@@ -114,7 +114,7 @@ class AnalysisPage(QWidget):
 
         # Left Split Container: Top Attack Types Panel
         attack_frame = QFrame()
-        attack_frame.setStyleSheet("background-color: #0E1E31; border: 1px solid #1E3654; border-radius: 8px;")
+        attack_frame.setStyleSheet("background-color: #0E1E31; border: 0.5px solid #3B82F6; border-radius: 8px;")
         attack_layout = QVBoxLayout(attack_frame)
         attack_layout.setContentsMargins(15, 12, 15, 12)
         
@@ -152,7 +152,7 @@ class AnalysisPage(QWidget):
 
         # Right Split Container: Top Source IPs Table
         ip_frame = QFrame()
-        ip_frame.setStyleSheet("background-color: #0E1E31; border: 1px solid #1E3654; border-radius: 8px;")
+        ip_frame.setStyleSheet("background-color: #0E1E31; border: 0.5px solid #3B82F6; border-radius: 8px;")
         ip_layout = QVBoxLayout(ip_frame)
         ip_layout.setContentsMargins(15, 12, 15, 12)
 
@@ -218,7 +218,7 @@ class AnalysisPage(QWidget):
         # 3. BOTTOM SECTION: INTEGRATED RECOMMENDATIONS PANEL
         # ---------------------------------------------------------
         rec_frame = QFrame()
-        rec_frame.setStyleSheet("background-color: #0E1E31; border: 1px solid #1E3654; border-radius: 8px;")
+        rec_frame.setStyleSheet("background-color: #0E1E31; border: 0.5px solid #3B82F6; border-radius: 8px;")
         rec_layout = QVBoxLayout(rec_frame)
         rec_layout.setContentsMargins(15, 12, 15, 12)
 

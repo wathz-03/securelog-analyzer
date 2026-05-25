@@ -5,6 +5,7 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QPixmap
 from log_viewer import LogViewer
 from analysis import AnalysisPage
+from visualizer import VisualizerPage 
 
 
 class Dashboard(QWidget):
@@ -486,6 +487,9 @@ class Dashboard(QWidget):
         
         self.analysis_page = AnalysisPage()
         self.main_pages.addWidget(self.analysis_page)
+
+        self.visualizer_page = VisualizerPage()
+        self.main_pages.addWidget(self.visualizer_page)
 
         # SIDEBAR + SCROLL CONTENT
         body_layout = QHBoxLayout()

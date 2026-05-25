@@ -39,7 +39,7 @@ class LogViewer(QWidget):
             QFrame {
                 background-color: #0B1A2B;
                 border-radius: 12px;
-                border: 0.5px solid #1E3A5F;
+                border: 0.5px solid #3B82F6;
             }
         """)
         filter_layout = QHBoxLayout(filter_frame)
@@ -53,7 +53,7 @@ class LogViewer(QWidget):
             QLineEdit {
                 background-color: #1A2D45;
                 color: white;
-                border: 1px solid #1F2A44;
+                border: 0.5px solid #3B82F6;
                 border-radius: 6px;
                 padding: 8px 12px;
                 font-size: 13px;
@@ -68,7 +68,7 @@ class LogViewer(QWidget):
             QComboBox {
                 background-color: #1A2D45;
                 color: white;
-                border: 1px solid #1F2A44;
+                border: 0.5px solid #3B82F6;
                 border-radius: 6px;
                 padding: 8px;
                 min-width: 120px;
@@ -89,7 +89,7 @@ class LogViewer(QWidget):
             QFrame {
                 background-color: #0B1A2B;
                 border-radius: 12px;
-                border: 0.5px solid #1E3A5F;
+                border: 0.5px solid #3B82F6;
             }
         """)
         table_container_layout = QVBoxLayout(table_frame)
@@ -148,7 +148,7 @@ class LogViewer(QWidget):
             QFrame {
                 background-color: #0B1A2B;
                 border-radius: 12px;
-                border: 0.5px solid #1E3A5F;
+                border: 0.5px solid #3B82F6;
             }
         """)
         
@@ -166,7 +166,7 @@ class LogViewer(QWidget):
         self.details_text_box.setStyleSheet("""
             QTextBrowser {
                 background-color: #071826;
-                border: 1px solid #14253D;
+                border: 0.5px solid #3B82F6;
                 border-radius: 8px;
                 padding: 12px;
                 font-size: 13px;
