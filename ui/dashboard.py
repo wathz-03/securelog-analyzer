@@ -1,17 +1,24 @@
 import sys
+import os
 import qtawesome as qta
 from PyQt6.QtWidgets import *
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, QFileInfo 
 from PyQt6.QtGui import QFont, QPixmap
-from log_viewer import LogViewer
-from analysis import AnalysisPage
-from visualizer import VisualizerPage 
-from reports import ReportsPage
+from ui.log_viewer import LogViewer
+from ui.analysis import AnalysisPage
+from ui.visualizer import VisualizerPage 
+from ui.reports import ReportsPage
+from logic.parser import LogParserEngine
 
 
 class Dashboard(QWidget):
     def __init__(self):
         super().__init__()
+
+        self.default_log_path = os.path.join("data", "sample_secure.log")
+        self.parser = LogParserEngine(self.default_log_path)
+        self.live_metrics = self.parser.parse_logs()
+
         self.setWindowTitle("SecureLog Analyzer")
         self.setGeometry(100, 100, 1300, 850)
         self.setStyleSheet("background-color: #071826; color: white;")
@@ -44,7 +51,6 @@ class Dashboard(QWidget):
         logo.setFixedSize(100, 100)
 
         title_layout = QVBoxLayout()
-
         title = QLabel("SecureLog Analyzer")
         title.setStyleSheet("font-size: 32px; font-weight: bold; left: 30px;")
 
@@ -214,10 +220,10 @@ class Dashboard(QWidget):
         upload_header.setStyleSheet("font-size: 18px; font-weight: bold; color: white; border: none; background: transparent;")
         upload_card_layout.addWidget(upload_header, 0, 0, 1, 2)
 
-        upload_box = QLabel("⬆️ Drag & drop your log file here\n.txt, .log, .csv (Max: 50MB)")
-        upload_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        upload_box.setMinimumHeight(130)  
-        upload_box.setStyleSheet("""
+        self.upload_box = QLabel("⬆️ Drag & drop your log file here\n.txt, .log, .csv (Max: 50MB)")
+        self.upload_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.upload_box.setMinimumHeight(130)  
+        self.upload_box.setStyleSheet("""
             QLabel {
                 background-color: #1A2D45;
                 color: #9CA3AF;
@@ -245,15 +251,17 @@ class Dashboard(QWidget):
         browse_btn = QPushButton("Browse File")
         browse_btn.setFixedSize(150, 45)
         browse_btn.setStyleSheet(btn_style)
+        browse_btn.clicked.connect(self.browse_log_file)
 
         analyze_btn = QPushButton("Analyze Logs")
         analyze_btn.setFixedSize(150, 45)
         analyze_btn.setStyleSheet(btn_style.replace("#3B82F6", "#10B981").replace("#2563EB", "#059669"))
+        analyze_btn.clicked.connect(self.trigger_log_analysis)
 
         button_layout.addWidget(browse_btn)
         button_layout.addWidget(analyze_btn)
 
-        upload_card_layout.addWidget(upload_box, 1, 0)
+        upload_card_layout.addWidget(self.upload_box, 1, 0)
         upload_card_layout.addLayout(button_layout, 1, 1)
         upload_card_layout.setColumnStretch(0, 1)  
 
@@ -278,6 +286,7 @@ class Dashboard(QWidget):
 
         stats_row_layout = QHBoxLayout()
         stats_row_layout.setSpacing(15)
+
 
         def create_stat_card(title, value, subtitle, icon_name, color, bg_color):
             card = QFrame()
@@ -508,6 +517,34 @@ class Dashboard(QWidget):
         main_layout.addLayout(body_layout)
 
         self.setLayout(main_layout)
+
+    def browse_log_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open Log File",
+            "",
+            "Log Files (*.log *.txt *.csv);;All Files (*)"
+        )
+        if file_path:
+            file_info = QFileInfo(file_path)
+            file_name = file_info.fileName()
+
+            self.upload_box.setText(f"📄 Loaded: {file_name}\nReady for deep analysis.")
+            self.upload_box.setStyleSheet("""
+                QLabel {
+                    background-color: #1E3A8A;
+                    color: #93C5FD;
+                    font_size: 16px;
+                    border-radius: 12px;
+                    border: 2px solid #3B82F6;
+                }
+            """)
+            self.default_log_path = file_path
+
+    def trigger_log_analysis(self):
+        self.parser = LogParserEngine(self.default_log_path)
+        self.live_metrics = self.parser.parse_logs()
+        print("Re-parsing complete! Live metrics refreshed.")
 
     # NAVIGATION FUNCTION
     def switch_page(self, index):
