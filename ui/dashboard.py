@@ -329,13 +329,19 @@ class Dashboard(QWidget):
             card_layout.addWidget(icon_label, 1)
             card_layout.addLayout(text_container, 2)
 
-            return card
+            return card, value_label
 
-        stats_row_layout.addWidget(create_stat_card("Total Entries", "500", "All log records", "fa5s.file-alt", "#3B82F6", "#172A45"))
-        stats_row_layout.addWidget(create_stat_card("Successful Logins", "359", "70.1% ↑", "fa5s.check-circle", "#10B981", "#064E3B"))
-        stats_row_layout.addWidget(create_stat_card("Failed Logins", "141", "29.9% ↓", "fa5s.times-circle", "#EF4444", "#451A1A"))
-        stats_row_layout.addWidget(create_stat_card("Suspicious Events", "94", "10.3% ⚠", "fa5s.exclamation-triangle", "#F59E0B", "#453015"))
-        stats_row_layout.addWidget(create_stat_card("Unique IPs", "63", "Found", "fa5s.globe", "#8B5CF6", "#2D1A45"))
+        self.lbl_total, card_total = create_stat_card("Total Entries", "0", "All log records", "fa5s.file-alt", "#3B82F6", "#172A45")
+        self.lbl_success, card_success = create_stat_card("Successful Logins", "0", "70.1% ↑", "fa5s.check-circle", "#10B981", "#064E3B")
+        self.lbl_failed, card_failed = create_stat_card("Failed Logins", "0", "29.9% ↓", "fa5s.times-circle", "#EF4444", "#451A1A")
+        self.lbl_suspicious, card_suspicious = create_stat_card("Suspicious Events", "0", "10.3% ⚠", "fa5s.exclamation-triangle", "#F59E0B", "#453015")
+        self.lbl_ips, card_ips = create_stat_card("Unique IPs", "0", "Found", "fa5s.globe", "#8B5CF6", "#2D1A45")
+
+        stats_row_layout.addWidget(card_total)
+        stats_row_layout.addWidget(card_success)
+        stats_row_layout.addWidget(card_failed)
+        stats_row_layout.addWidget(card_suspicious)
+        stats_row_layout.addWidget(card_ips)
 
         outer_layout.addLayout(stats_row_layout)
         content.addWidget(quick_stats_container)
@@ -518,6 +524,8 @@ class Dashboard(QWidget):
 
         self.setLayout(main_layout)
 
+        self.update_dashboard_ui_labels(self.live_metrics)
+
     def browse_log_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self,
@@ -541,9 +549,29 @@ class Dashboard(QWidget):
             """)
             self.default_log_path = file_path
 
+    def update_dashboard_ui_labels(self, metrics):
+        total_label = self.lbl_total.findChild(QLabel) if hasattr(self.lbl_total, 'findChild') else self.lbl_total
+        success_label = self.lbl_success.findChild(QLabel) if hasattr(self.lbl_success, 'findChild') else self.lbl_success
+        failed_label = self.lbl_failed.findChild(QLabel) if hasattr(self.lbl_failed, 'findChild') else self.lbl_failed
+
+        if total_label:
+            total_label.setText(str(metrics.get("total_entries", "0")))
+        if success_label:
+            success_label.setText(str(metrics.get("success_logins", "0")))
+        if failed_label:
+            failed_label.setText(str(metrics.get("failed_logins", "0")))
+
     def trigger_log_analysis(self):
         self.parser = LogParserEngine(self.default_log_path)
         self.live_metrics = self.parser.parse_logs()
+
+        self.update_dashboard_ui_labels(self.live_metrics)
+
+        file_name = QFileInfo(self.default_log_path).fileName()
+        self.log_viewer_page.load_log_file(self.default_log_path)
+        self.visualizer_page.render_metrics_charts(self.live_metrics)
+        self.reports_page.generate_historical_summary(self.live_metrics, file_name)
+        self.analysis_page.load_analysis_metrics(self.live_metrics)
         print("Re-parsing complete! Live metrics refreshed.")
 
     # NAVIGATION FUNCTION

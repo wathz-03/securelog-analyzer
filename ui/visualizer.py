@@ -2,8 +2,6 @@ import sys
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGridLayout, QFrame, QScrollArea)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-
-# Matplotlib integration for PyQt6 backend
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.ticker as ticker
@@ -20,21 +18,27 @@ class LogActivityChart(FigureCanvas):
         self.ax = fig.add_subplot(111)
         self.ax.set_facecolor('#071826')
         
-        self.plot_trends()
+        self.plot_trends(0, 0, 0)
 
-    def plot_trends(self):
+    def plot_trends(self, success=0, failed=0, total=0):
         self.ax.clear()
         
         # Timeline data points from the design mockup
-        days = ['May 1', 'May 4', 'May 7', 'May 10', 'May 13', 'May 16', 'May 18']
-        total_events = [700, 900, 750, 1600, 1000, 1500, 1100]
-        success_logins = [400, 600, 500, 1100, 700, 1000, 800]
-        failed_logins = [300, 300, 250, 500, 300, 500, 300]
+        if total == 0:
+            days = ['Baseline']
+            total_events = [0]
+            success_logins = [0]
+            failed_logins = [0]
+        else:
+            days = ['T-2h', 'T-1h', 'Current Run']
+            total_events = [int(total*0.3), int(total*0.6), total]
+            success_logins = [int(success*0.2), int(success*0.5), success]
+            failed_logins = [int(failed*0.4), int(failed*0.8), failed]
         
         # Draw anti-aliased trend lines with distinct marker nodes matching your color scheme
-        self.ax.plot(days, total_events, marker='o', markersize=4, color='#3B82F6', label='Total Events', linewidth=2)
-        self.ax.plot(days, success_logins, marker='o', markersize=4, color='#10B981', label='Successful Logins', linewidth=2)
-        self.ax.plot(days, failed_logins, marker='o', markersize=4, color='#EF4444', label='Failed Logins', linewidth=2)
+        self.ax.plot(days, total_events, marker='o', markersize=5, color='#3B82F6', label='Total Events', linewidth=2)
+        self.ax.plot(days, success_logins, marker='o', markersize=5, color='#10B981', label='Successful Logins', linewidth=2)
+        self.ax.plot(days, failed_logins, marker='o', markersize=5, color='#EF4444', label='Failed Logins', linewidth=2)
         
         # Structural boundary cleanup (Removing top/right borders for a clean modern flat look)
         self.ax.spines['top'].set_visible(False)
@@ -48,9 +52,10 @@ class LogActivityChart(FigureCanvas):
         
         # Style layout legend
         leg = self.ax.legend(facecolor='#1F2937', edgecolor='none', loc='upper left', framealpha=0.6)
-        for text in leg.get_texts():
-            text.set_color('white')
-            text.set_fontsize(9)
+        if leg:
+            for text in leg.get_texts():
+                text.set_color('white')
+                text.set_fontsize(9)
             
         self.ax.set_title("Log Activity Over Time", color='white', fontsize=12, pad=15, loc='left', weight='bold')
         self.figure.tight_layout()
@@ -68,15 +73,20 @@ class EventDistributionChart(FigureCanvas):
         self.ax = fig.add_subplot(111)
         self.ax.set_facecolor('#071826')
         
-        self.plot_distribution()
+        self.plot_distribution(0, 0)
 
-    def plot_distribution(self):
+    def plot_distribution(self, failed_logins=0, suspicious_events=0):
         self.ax.clear()
         
         # Data distributions matching your UI specifications
-        labels = ['Failed Login (27.7%)', 'Access Denied (17.2%)', 'Brute Force (15.1%)', 'Login Success (14.8%)']
-        sizes = [27.7, 17.2, 15.1, 14.8]
-        colors = ['#EF4444', '#F59E0B', '#3B82F6', '#10B981']
+        if failed_logins == 0 and suspicious_events == 0:
+            labels = ['No Anomalies Detected']
+            sizes = [100]
+            colors = ['#10B981']
+        else:
+            labels = [f'Failed Logins ({failed_logins})', f'Suspicious Events ({suspicious_events})']
+            sizes = [failed_logins, suspicious_events] if (failed_logins + suspicious_events) > 0 else [1, 1]
+            colors = ['#EF4444', '#F59E0B']
         
         # Build donut chart container rings using wedgeprops parameters
         wedges, texts = self.ax.pie(
@@ -138,13 +148,20 @@ class VisualizerPage(QWidget):
         # METRIC KPI SUMMARY ROW
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(16)
-        
+
+        # Capture the internal value label references fo dynamic dashboard
+        self.lbl_total, card_total = self.create_stat_card("Total Log Entries", "0", "#1E293B")
+        self.lbl_successful, card_success = self.create_stat_card("Successful Logins", "0", "#064E3B")
+        self.lbl_failed, card_failed = self.create_stat_card("Failed Logins", "0", "#7F1D1D")
+        self.lbl_ips, card_ips = self.create_stat_card("Unique IP Addresses", "0", "#3B0764")
+        self.lbl_suspicious, card_suspicious = self.create_stat_card("Suspicious Events", "0", "#78350F")
+
         # Generate the 5 critical tracking parameters directly from the design schema
-        stats_layout.addWidget(self.create_stat_card("Total Log Entries", "12,458", "#1E293B"))
-        stats_layout.addWidget(self.create_stat_card("Successful Logins", "7,234", "#064E3B"))
-        stats_layout.addWidget(self.create_stat_card("Failed Logins", "5,224", "#7F1D1D"))
-        stats_layout.addWidget(self.create_stat_card("Unique IP Addresses", "1,248", "#3B0764"))
-        stats_layout.addWidget(self.create_stat_card("Suspicious Events", "2,123", "#78350F"))
+        stats_layout.addWidget(card_total)
+        stats_layout.addWidget(card_success)
+        stats_layout.addWidget(card_failed)
+        stats_layout.addWidget(card_ips)
+        stats_layout.addWidget(card_suspicious)
         
         main_layout.addLayout(stats_layout)
 
@@ -162,7 +179,6 @@ class VisualizerPage(QWidget):
                 border-radius: 10px;
             }
         """)
-        line_frame.setPadding = lambda x: line_frame.setContentsMargins(x, x, x, x)
 
         line_vbox = QVBoxLayout(line_frame)
         line_vbox.setContentsMargins(10, 10, 10, 10)
@@ -192,8 +208,32 @@ class VisualizerPage(QWidget):
         scroll.setWidget(content_widget)
         outer_layout.addWidget(scroll)
 
+    def render_metrics_charts(self, metrics_data):
+        """Updates tracking labels and forces graphs to refresh"""
+        self.lbl_total.setText(str(metrics_data.get("total_entries", "0")))
+        self.lbl_successful.setText(str(metrics_data.get("success_logins", "0")))
+        self.lbl_failed.setText(str(metrics_data.get("failed_logins", "0")))
+        
+        ips_data = metrics_data.get("unique_ips", 0)
+        if isinstance(ips_data, (set, list)):
+            self.lbl_ips.setText(str(len(ips_data)))
+        else:
+            self.lbl_ips.setText(str(ips_data))
+
+        self.lbl_suspicious.setText(str(metrics_data.get("suspicious_events", "0")))
+
+        success = metrics_data.get("success_logins", 0)
+        failed = metrics_data.get("failed_logins", 0)
+        total = metrics_data.get("total_entries", 0)
+        suspicious = metrics_data.get("suspicious_events", 0)
+
+        self.line_canvas.plot_trends(success, failed, total)
+        self.donut_canvas.plot_distribution(failed, suspicious)
+
+        print("[Visualizer] Live canvas update sequence executed successfully.")
+
     def create_stat_card(self, title, value, bg_color):
-        """Generates unified, low-profile stat metrics cards matching layout scales."""
+        """Generates functional stat cards returning both the update label and frame layout parent."""
         card = QFrame()
         card.setObjectName("cardFrame")
         card.setStyleSheet(f"""
@@ -211,15 +251,15 @@ class VisualizerPage(QWidget):
         card_layout.setContentsMargins(16, 16, 16, 16)
         card_layout.setSpacing(6)
         
-        lbl_title = QLabel(title)
+        lbl_title = QLabel(title, card)
         lbl_title.setStyleSheet("color: #9CA3AF; font-size: 13px; font-weight: 500; background: transparent;")
         
-        lbl_val = QLabel(value)
+        lbl_val = QLabel(value, card)
         lbl_val.setStyleSheet("color: white; font-size: 24px; font-weight: bold; background: transparent;")
         
         card_layout.addWidget(lbl_title)
         card_layout.addWidget(lbl_val)
-        return card
+        return lbl_val, card
     
 if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication

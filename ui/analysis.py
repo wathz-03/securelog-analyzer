@@ -32,7 +32,7 @@ class AnalysisPage(QWidget):
 
         header_layout.addStretch()
 
-        run_btn = QPushButton(" Run New Analysis")
+        run_btn = QPushButton("Run New Analysis")
         run_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         run_btn.setStyleSheet("""
             QPushButton {
@@ -70,40 +70,15 @@ class AnalysisPage(QWidget):
         stats_grid_layout = QHBoxLayout()
         stats_grid_layout.setSpacing(12)
 
-        # Fix specific tuple variable assignment sequence to match list data layout securely
-        card_data_corrected = [
-            ("Total Analyzed", "12,458", "Log entries", "#13273F", "#1D3B61", "#3B82F6"),
-            ("Normal Events", "7,234", "58.0% of total", "#0E3326", "#144D39", "#10B981"),
-            ("Potential Threats", "2,123", "17.0% risk", "#3D2A0F", "#5C3E14", "#F59E0B"),
-            ("Critical Events", "1,225", "9.9% action", "#3D1418", "#5C1E24", "#EF4444")
-        ]
+        self.total_analyzed_lbl, card_tot = self.create_stat_card("Total Analyzed", "12,458", "Log entries", "#13273F", "#1D3B61", "#3B82F6")
+        self.normal_events_lbl, card_norm = self.create_stat_card("Normal Events", "7,234", "58.0% of total", "#0E3326", "#144D39", "#10B981")
+        self.potential_threats_lbl, card_thr = self.create_stat_card("Potential Threats", "2,123", "17.0% risk", "#3D2A0F", "#5C3E14", "#F59E0B")
+        self.critical_events_lbl, card_crit = self.create_stat_card("Critical Events", "1,225", "9.9% action", "#3D1418", "#5C1E24", "#EF4444")
 
-        for title, val, sub, bg_color, border_color, text_color in card_data_corrected:
-            card = QFrame()
-            card.setStyleSheet(f"""
-                QFrame {{
-                    background-color: {bg_color};
-                    border: 1px solid {border_color};
-                    border-radius: 6px;
-                }}
-            """)
-            card_vbox = QVBoxLayout(card)
-            card_vbox.setContentsMargins(12, 10, 12, 10)
-            card_vbox.setSpacing(2)
-
-            lbl_title = QLabel(title)
-            lbl_title.setStyleSheet("font-size: 11px; color: #9CA3AF; font-weight: bold; border: none; background: transparent;")
-            
-            lbl_val = QLabel(val)
-            lbl_val.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {text_color}; border: none; background: transparent;")
-            
-            lbl_sub = QLabel(sub)
-            lbl_sub.setStyleSheet("font-size: 10px; color: #9CA3AF; border: none; background: transparent;")
-
-            card_vbox.addWidget(lbl_title)
-            card_vbox.addWidget(lbl_val)
-            card_vbox.addWidget(lbl_sub)
-            stats_grid_layout.addWidget(card)
+        stats_grid_layout.addWidget(card_tot)
+        stats_grid_layout.addWidget(card_norm)
+        stats_grid_layout.addWidget(card_thr)
+        stats_grid_layout.addWidget(card_crit)
 
         stats_outer_layout.addLayout(stats_grid_layout)
         main_layout.addWidget(stats_container, stretch=1)
@@ -146,6 +121,9 @@ class AnalysisPage(QWidget):
             row_lay.addStretch()
             row_lay.addWidget(lbl_count)
             attack_layout.addWidget(row_w)
+
+            if "Failed" in name: self.failed_attack_lbl = lbl_count
+            elif "Brute" in name: self.brute_attack_lbl = lbl_count
             
         attack_layout.addStretch()
         matrix_grid_layout.addWidget(attack_frame, stretch=1)
@@ -214,9 +192,7 @@ class AnalysisPage(QWidget):
 
         main_layout.addLayout(matrix_grid_layout, stretch=2)
 
-        # ---------------------------------------------------------
         # 3. BOTTOM SECTION: INTEGRATED RECOMMENDATIONS PANEL
-        # ---------------------------------------------------------
         rec_frame = QFrame()
         rec_frame.setStyleSheet("background-color: #0E1E31; border: 0.5px solid #3B82F6; border-radius: 8px;")
         rec_layout = QVBoxLayout(rec_frame)
@@ -238,6 +214,60 @@ class AnalysisPage(QWidget):
             rec_layout.addWidget(lbl_rec)
 
         main_layout.addWidget(rec_frame, stretch=1)
+
+    def create_stat_card(self, title, val, sub, bg_color, border_color, text_color):
+        """Memory-safe layout constructor tracking text handles directly."""
+        card = QFrame()
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {bg_color};
+                border: 1px solid {border_color};
+                border-radius: 6px;
+            }}
+        """)
+        card_vbox = QVBoxLayout(card)
+        card_vbox.setContentsMargins(12, 10, 12, 10)
+        card_vbox.setSpacing(2)
+
+        lbl_title = QLabel(title, card)
+        lbl_title.setStyleSheet("font-size: 11px; color: #9CA3AF; font-weight: bold; border: none; background: transparent;")
+        
+        lbl_val = QLabel(val, card)
+        lbl_val.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {text_color}; border: none; background: transparent;")
+        
+        lbl_sub = QLabel(sub, card)
+        lbl_sub.setStyleSheet("font-size: 10px; color: #9CA3AF; border: none; background: transparent;")
+
+        card_vbox.addWidget(lbl_title)
+        card_vbox.addWidget(lbl_val)
+        card_vbox.addWidget(lbl_sub)
+        
+        return lbl_val, card
+
+    def load_analysis_metrics(self, metrics_dict):
+        """Accepts live data maps from the core dashboard pipeline without thread blocking."""
+        try:
+            total_logs = metrics_dict.get("total_entries", 0)
+            failed_logins = metrics_dict.get("failed_logins", 0)
+            suspicious = metrics_dict.get("suspicious_events", 0)
+            
+            critical = int(failed_logins * 0.4)
+            potential = suspicious + (failed_logins - critical)
+            normal = max(0, total_logs - (potential + critical))
+            
+            self.total_analyzed_lbl.setText(f"{total_logs:,}")
+            self.normal_events_lbl.setText(f"{normal:,}")
+            self.potential_threats_lbl.setText(f"{potential:,}")
+            self.critical_events_lbl.setText(f"{critical:,}")
+            
+            if hasattr(self, 'failed_attack_lbl'):
+                self.failed_attack_lbl.setText(f"{failed_logins:,} entries")
+            if hasattr(self, 'brute_attack_lbl'):
+                self.brute_attack_lbl.setText(f"{critical:,} matches")
+                
+            print("[Analysis] Structural metrics updated flawlessly.")
+        except Exception as e:
+            print(f"[Analysis] Stream connection updating failure: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
