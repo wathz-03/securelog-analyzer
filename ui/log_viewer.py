@@ -1,4 +1,5 @@
 import sys
+import os
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QColor, QFont
@@ -184,20 +185,51 @@ class LogViewer(QWidget):
 
         self.populate_mock_data()
 
-    def populate_mock_data(self):
-        mock_logs = [
-            ("2026-05-18 10:45:32", "ERROR", "192.168.1.15", "Invalid password attempt for user: admin"),
-            ("2026-05-18 10:44:21", "WARNING", "201.0.145.56", "Access denied to file directory: /etc/passwd"),
-            ("2026-05-18 10:43:10", "INFO", "192.168.1.10", "User logged in successfully: john_doe"),
-            ("2026-05-18 10:42:05", "INFO", "192.168.1.12", "Accessed file metadata system: report.pdf"),
-            ("2026-05-18 10:41:55", "WARNING", "203.0.113.45", "Multiple sequential authorization failures detected"),
-            ("2026-05-18 10:40:33", "CRITICAL", "127.0.0.1", "Core runtime service sshd crashed unexpectedly"),
-        ]
+    def load_log_file(self, file_path):
+        """Receives log files selected from dashbaord and parses them live into rows."""
+        if not os.path.exists(file_path):
+            print(f"[LogViewer] Specified log file target path missing: {file_path}")
+            return
 
-        self.table.setRowCount(len(mock_logs))
-        
-        for row_idx, (timestamp, level, ip, message) in enumerate(mock_logs):
-    
+        parsed_rows = []
+        try:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
+                for line in file:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    level = "INFO"
+                    if "ERROR" in line or "failed" in line.lower() or "invalid" in line.lower():
+                        level = "ERROR"
+                    elif "WARN" in line or "denied" in line.lower():
+                        level = "WARNING"
+                    elif "CRITICAL" in line or "crash" in line.lower():
+                        level = "CRITICAL"
+
+                    parts = line.split(" ", maxsplit=2)
+                    timestamp = f"{parts[0]} {parts[1]}" if len(parts) >= 2 else "Unknown Time"
+
+                    ip = "System Control"
+                    for chunk in line.split():
+                        if chunk.count(".") == 3 and chunk.replace(".", "").isdigit():
+                            ip = chunk
+                            break
+
+                    parsed_rows.append((timestamp, level, ip, line))
+                
+            if parsed_rows:
+                self.render_custom_log_list(parsed_rows)
+                print(f"[LogViewer] Success! Loaded {len(parsed_rows)} entries from {os.path.basename(file_path)}.")
+        except Exception as e:
+            print(f"[LogViewer] File parsing pipeline failure: {str(e)}")
+
+    def render_custom_log_list(self, log_list):
+        """Clears existing entires and paints list variable onto structural table view."""
+        self.table.setRowCount(0)
+        self.table.setRowCount(len(log_list))
+
+        for row_idx, (timestamp, level, ip, message) in enumerate(log_list):
             ts_item = QTableWidgetItem(timestamp)
             lvl_item = QTableWidgetItem(level)
             ip_item = QTableWidgetItem(ip)
@@ -212,7 +244,6 @@ class LogViewer(QWidget):
             elif level == "INFO":
                 lvl_item.setForeground(QColor("#10B981")) 
 
-            
             lvl_item.setFont(QFont("Segoe UI", weight=QFont.Weight.Bold))
             
             self.table.setItem(row_idx, 0, ts_item)
@@ -220,12 +251,28 @@ class LogViewer(QWidget):
             self.table.setItem(row_idx, 2, ip_item)
             self.table.setItem(row_idx, 3, msg_item)
 
+
+    def populate_mock_data(self):
+        mock_logs = [
+            ("2026-05-18 10:45:32", "ERROR", "192.168.1.15", "Invalid password attempt for user: admin"),
+            ("2026-05-18 10:44:21", "WARNING", "201.0.145.56", "Access denied to file directory: /etc/passwd"),
+            ("2026-05-18 10:43:10", "INFO", "192.168.1.10", "User logged in successfully: john_doe"),
+            ("2026-05-18 10:42:05", "INFO", "192.168.1.12", "Accessed file metadata system: report.pdf"),
+            ("2026-05-18 10:41:55", "WARNING", "203.0.113.45", "Multiple sequential authorization failures detected"),
+            ("2026-05-18 10:40:33", "CRITICAL", "127.0.0.1", "Core runtime service sshd crashed unexpectedly"),
+        ]
+
+        self.render_custom_log_list(mock_logs)
+
     def display_log_details(self):
         selected_ranges = self.table.selectedRanges()
         if not selected_ranges:
             return
             
         row = selected_ranges[0].topRow()
+
+        if not self.table.item(row, 0):
+            return
         
         timestamp = self.table.item(row, 0).text()
         level = self.table.item(row, 1).text()

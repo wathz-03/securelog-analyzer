@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QScrollArea, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView)
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QColor
 
 class ReportsPage(QWidget):
     """
@@ -65,11 +65,17 @@ class ReportsPage(QWidget):
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(16)
         
-        stats_layout.addWidget(self.create_stat_card("Reports Generated", "24", "#1E293B"))
-        stats_layout.addWidget(self.create_stat_card("Successful Reports", "22", "#064E3B"))
-        stats_layout.addWidget(self.create_stat_card("Issues Found", "1,876", "#7F1D1D"))
-        stats_layout.addWidget(self.create_stat_card("Critical Issues", "289", "#3B0764"))
-        stats_layout.addWidget(self.create_stat_card("Exports", "18", "#115E59"))
+        self.lbl_reports, card_rep = self.create_stat_card("Reports Generated", "24", "#1E293B")
+        self.lbl_successful, card_succ = self.create_stat_card("Successful Reports", "22", "#064E3B")
+        self.lbl_issues, card_iss = self.create_stat_card("Issues Found", "1,876", "#7F1D1D")
+        self.lbl_critical, card_crit = self.create_stat_card("Critical Issues", "289", "#3B0764")
+        self.lbl_exports, card_exp = self.create_stat_card("Exports", "18", "#115E59")
+        
+        stats_layout.addWidget(card_rep)
+        stats_layout.addWidget(card_succ)
+        stats_layout.addWidget(card_iss)
+        stats_layout.addWidget(card_crit)
+        stats_layout.addWidget(card_exp)
         
         main_layout.addLayout(stats_layout)
 
@@ -172,7 +178,7 @@ class ReportsPage(QWidget):
         
         card_layout.addWidget(lbl_title)
         card_layout.addWidget(lbl_val)
-        return card
+        return card, lbl_val
 
     def init_data_table(self):
         """Prepares metadata dimensions and visual configurations for the security tracking list."""
@@ -220,26 +226,54 @@ class ReportsPage(QWidget):
             header.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
             
         # Add a placeholder sample dataset immediately
-        sample_data = [
+        self.historical_records = [
             ("Security Summary - Weekly", "Security Summary", "2026-05-28", "312", "Completed"),
             ("Threat Analysis - External IPs", "Threat Analysis", "2026-05-27", "156", "Completed"),
             ("Compliance - PCI DSS", "Compliance", "2026-05-25", "89", "Completed"),
             ("System Health Report", "System Health", "2026-05-24", "0", "Failed")
         ]
+        self.render_table_rows()
+
+    def render_table_rows(self):
+        """Clears view frame and maps current historical records directly onto widget."""
+        self.report_table.setRowCount(0)
+        self.report_table.setRowCount(len(self.historical_records))
         
-        self.report_table.setRowCount(len(sample_data))
-        for row_idx, row_data in enumerate(sample_data):
+        for row_idx, row_data in enumerate(self.historical_records):
             for col_idx, text in enumerate(row_data):
                 item = QTableWidgetItem(text)
-                
-                # Context styling logic for the status column
                 if col_idx == 4:
                     if text == "Completed":
-                        item.setForeground(Qt.GlobalColor.green)
+                        item.setForeground(QColor("#10B981"))
                     else:
-                        item.setForeground(Qt.GlobalColor.red)
-                        
+                        item.setForeground(QColor("#EF4444"))
                 self.report_table.setItem(row_idx, col_idx, item)
+    
+    def generate_historical_summary(self, metrics_data, file_name):
+        """Intercepts analytical metric data objects and generates a new record entry row entry."""
+        import datetime
+        
+        # 1. Pull relevant features from dashboard metric dictionary
+        total_issues = str(metrics_data.get("failed_logins", 0) + metrics_data.get("suspicious_events", 0))
+        today_str = datetime.date.today().strftime("%Y-%m-%d")
+        clean_name = f"Analysis - {file_name}" if file_name else "Live Stream Summary"
+        
+        # 2. Append new log tracking row structure to top of historical list
+        new_row = [clean_name, "Log Analysis", today_str, total_issues, "Completed"]
+        self.historical_records.insert(0, new_row)
+        
+        # 3. Force update view panel UI grid
+        self.render_table_rows()
+        
+        # 4. Optional: Bump up KPI metric counter cards to show progressive scale tracking
+        try:
+            current_count = int(self.lbl_reports.text())
+            self.lbl_reports.setText(str(current_count + 1))
+            
+            current_issues = int(self.lbl_issues.text().replace(",", ""))
+            self.lbl_issues.setText(f"{current_issues + int(total_issues):,}")
+        except Exception as e:
+            print(f"[Reports] Ribbon counter dynamic layout bump suppressed: {e}")
 
 
 if __name__ == "__main__":
