@@ -3,7 +3,8 @@ import os
 import qtawesome as qta
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt, QSize, QFileInfo 
-from PyQt6.QtGui import QFont, QPixmap
+from PyQt6.QtGui import QFont, QPixmap, QColor, QPainter
+
 from ui.log_viewer import LogViewer
 from ui.analysis import AnalysisPage
 from ui.visualizer import VisualizerPage 
@@ -16,8 +17,7 @@ class Dashboard(QWidget):
         super().__init__()
 
         self.default_log_path = os.path.join("data", "sample_secure.log")
-        self.parser = LogParserEngine(self.default_log_path)
-        self.live_metrics = self.parser.parse_logs()
+        self.live_metrics = {}
 
         self.setWindowTitle("SecureLog Analyzer")
         self.setGeometry(100, 100, 1300, 850)
@@ -65,21 +65,6 @@ class Dashboard(QWidget):
 
         # RIGHT (buttons)
         right_section = QHBoxLayout()
-
-        settings_btn = QPushButton("⚙ Settings")
-        about_btn = QPushButton("ℹ     About")
-
-        for btn in [settings_btn, about_btn]:
-            btn.setFixedWidth(120)
-            btn.setFixedHeight(40)
-            btn.setStyleSheet("""
-                background-color: #1A2D45;
-                padding: 8px 16px;
-                border-radius: 8px;
-            """)
-
-        right_section.addWidget(settings_btn)
-        right_section.addWidget(about_btn)
 
         header_layout.addLayout(left_section)
         header_layout.addStretch()
@@ -329,13 +314,14 @@ class Dashboard(QWidget):
             card_layout.addWidget(icon_label, 1)
             card_layout.addLayout(text_container, 2)
 
-            return card, value_label
+            return card, value_label, subtitle_label
 
-        self.lbl_total, card_total = create_stat_card("Total Entries", "0", "All log records", "fa5s.file-alt", "#3B82F6", "#172A45")
-        self.lbl_success, card_success = create_stat_card("Successful Logins", "0", "70.1% ↑", "fa5s.check-circle", "#10B981", "#064E3B")
-        self.lbl_failed, card_failed = create_stat_card("Failed Logins", "0", "29.9% ↓", "fa5s.times-circle", "#EF4444", "#451A1A")
-        self.lbl_suspicious, card_suspicious = create_stat_card("Suspicious Events", "0", "10.3% ⚠", "fa5s.exclamation-triangle", "#F59E0B", "#453015")
-        self.lbl_ips, card_ips = create_stat_card("Unique IPs", "0", "Found", "fa5s.globe", "#8B5CF6", "#2D1A45")
+
+        card_total, self.lbl_total, self.lbl_total_sub = create_stat_card("Total Entries", "0", "All log records", "fa5s.file-alt", "#3B82F6", "#172A45")
+        card_success, self.lbl_success, self.lbl_success_sub = create_stat_card("Successful Logins", "0", "0.0%", "fa5s.check-circle", "#10B981", "#064E3B")
+        card_failed, self.lbl_failed, self.lbl_failed_sub = create_stat_card("Failed Logins", "0", "0.0%", "fa5s.times-circle", "#EF4444", "#451A1A")
+        card_suspicious, self.lbl_suspicious, self.lbl_suspicious_sub = create_stat_card("Suspicious Events", "0", "0.0% ⚠", "fa5s.exclamation-triangle", "#F59E0B", "#453015")
+        card_ips, self.lbl_ips, self.lbl_ips_sub = create_stat_card("Unique IPs", "0", "Found", "fa5s.globe", "#8B5CF6", "#2D1A45")
 
         stats_row_layout.addWidget(card_total)
         stats_row_layout.addWidget(card_success)
@@ -388,107 +374,13 @@ class Dashboard(QWidget):
         header_row.addWidget(view_all_btn)
         alerts_outer_layout.addLayout(header_row)
 
-        def create_alert_item(title, details, time_str, priority_text, main_color, bg_color):
-            alert_card = QFrame()
-            alert_card.setFixedHeight(80) 
-            alert_card.setStyleSheet(f"background-color: {bg_color}; border-radius: 12px; border: none;")
-            
-            card_layout = QHBoxLayout(alert_card)
-            card_layout.setContentsMargins(0, 0, 15, 0)
-            card_layout.setSpacing(15)
+        self.alerts_list_layout = QVBoxLayout()
+        self.alerts_list_layout.setSpacing(10)
+        alerts_outer_layout.addLayout(self.alerts_list_layout)
 
-            accent_bar = QFrame()
-            accent_bar.setFixedWidth(6)
-            accent_bar.setStyleSheet(f"""
-                background-color: {main_color};
-                border-top-left-radius: 12px;
-                border-bottom-left-radius: 12px;
-                border: none;
-            """)
-            
-            dot_indicator = QLabel()
-            dot_indicator.setFixedSize(14, 14)
-            dot_indicator.setStyleSheet(f"background-color: {main_color}; border-radius: 7px; border: none;")
+        self.create_alert_item = lambda title, details, time_str, priority_text, main_color, bg_color: self._build_alert_card_widget(title, details, time_str, priority_text, main_color, bg_color)
 
-            text_container = QWidget()
-            text_container.setStyleSheet("background: transparent; border: none;")
-            text_layout = QVBoxLayout(text_container)
-            text_layout.setContentsMargins(0, 5, 0, 5)
-            text_layout.setSpacing(2)
-            text_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-
-            t_lbl = QLabel(title)
-            t_lbl.setStyleSheet("color: white; font-size: 15px; font-weight: bold; background: transparent;")
-            
-            d_lbl = QLabel(details)
-            d_lbl.setStyleSheet("color: #D1D5DB; font-size: 11px; background: transparent;")
-            
-            time_lbl = QLabel(time_str)
-            time_lbl.setStyleSheet("color: #6B7280; font-size: 10px; background: transparent;")
-
-            text_layout.addWidget(t_lbl)
-            text_layout.addWidget(d_lbl)
-            text_layout.addWidget(time_lbl)
-
-            badge = QPushButton(priority_text)
-            badge.setFixedSize(115, 26)
-            badge.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {main_color}; 
-                    color: #FFFFFF;
-                    border: none;
-                    border-radius: 6px;
-                    font-size: 10px;
-                    font-weight: bold;
-                }}
-            """)
-
-            card_layout.addWidget(accent_bar)
-            card_layout.addWidget(dot_indicator, alignment=Qt.AlignmentFlag.AlignVCenter)
-            card_layout.addWidget(text_container, stretch=1)
-            card_layout.addWidget(badge, alignment=Qt.AlignmentFlag.AlignVCenter)
-            
-            return alert_card
-
-        alerts_list_layout = QVBoxLayout()
-        alerts_list_layout.setSpacing(10)
-
-        alerts_list_layout.addWidget(create_alert_item("Multiple Failed Logins", "User 'admin' has 5 failed login attempts from 192.168.1.15", "10:24 AM", "High Priority", "#EF4444", "#2D1A1E"))
-        alerts_list_layout.addWidget(create_alert_item("Suspicious IP Activity", "IP 203.0.113.45 has failed logins for 3 users", "10:20 AM", "Medium Priority", "#F59E0B", "#2D2415"))
-        alerts_list_layout.addWidget(create_alert_item("Unusual Login Time", "User 'John_Doe' logged in outside business hours (02:17 AM)", "02:17 AM", "Low Priority", "#10B981", "#152D20"))
-        alerts_list_layout.addWidget(create_alert_item("Access Denied", "Guest user attempted to access restricted file", "11:26 PM", "Medium Priority", "#F59E0B", "#2D2415"))
-
-        alerts_outer_layout.addLayout(alerts_list_layout)
-
-        #  CHART CONTAINER
-        chart_container = QFrame()
-        chart_container.setStyleSheet("""
-            QFrame {
-                background-color: #0B1A2B;
-                border: 1px solid #1F2A44;
-                border-radius: 20px;
-            }
-        """)
-        chart_outer_layout = QVBoxLayout(chart_container)
-        chart_outer_layout.setContentsMargins(20, 20, 20, 20)
-        
-        chart_title = QLabel("Log Activity Over Time")
-        chart_title.setStyleSheet("font-size: 18px; font-weight: bold; color: white; border: none; background: transparent;")
-        
-        chart_placeholder = QLabel("Chart will appear here")
-        chart_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        chart_placeholder.setMinimumHeight(350) 
-        chart_placeholder.setStyleSheet("""
-            background-color: #1A2D45;
-            border-radius: 12px;
-            color: #9CA3AF;
-        """)
-
-        chart_outer_layout.addWidget(chart_title)
-        chart_outer_layout.addWidget(chart_placeholder, stretch=1)
-
-        bottom.addWidget(alerts_container, 1)
-        bottom.addWidget(chart_container, 1)  
+        bottom.addWidget(alerts_container, 1)  
 
         content.addLayout(bottom)
         content.addStretch(1) 
@@ -502,6 +394,7 @@ class Dashboard(QWidget):
         self.main_pages.addWidget(self.log_viewer_page)
         
         self.analysis_page = AnalysisPage()
+        self.analysis_page.redirect_to_dashboard.connect(lambda: self.main_pages.setCurrentIndex(0))
         self.main_pages.addWidget(self.analysis_page)
 
         self.visualizer_page = VisualizerPage()
@@ -510,21 +403,67 @@ class Dashboard(QWidget):
         self.reports_page = ReportsPage()
         self.main_pages.addWidget(self.reports_page)
 
-        # SIDEBAR + SCROLL CONTENT
         body_layout = QHBoxLayout()
         body_layout.setContentsMargins(15, 15, 15, 15)
         body_layout.setSpacing(15)
 
         body_layout.addWidget(sidebar_frame, 0) 
         body_layout.addWidget(self.main_pages, 1)   
-
-        #  FINAL GLOBAL PACKING 
+ 
         main_layout.addWidget(header_container)
         main_layout.addLayout(body_layout)
 
         self.setLayout(main_layout)
 
         self.update_dashboard_ui_labels(self.live_metrics)
+
+    def _build_alert_card_widget(self, title, details, time_str, priority_text, main_color, bg_color):
+        alert_card = QFrame()
+        alert_card.setFixedHeight(80) 
+        alert_card.setStyleSheet(f"background-color: {bg_color}; border-radius: 12px; border: none;")
+        
+        card_layout = QHBoxLayout(alert_card)
+        card_layout.setContentsMargins(0, 0, 15, 0)
+        card_layout.setSpacing(15)
+
+        accent_bar = QFrame()
+        accent_bar.setFixedWidth(6)
+        accent_bar.setStyleSheet(f"background-color: {main_color}; border-top-left-radius: 12px; border-bottom-left-radius: 12px; border: none;")
+        
+        dot_indicator = QLabel()
+        dot_indicator.setFixedSize(14, 14)
+        dot_indicator.setStyleSheet(f"background-color: {main_color}; border-radius: 7px; border: none;")
+
+        text_container = QWidget()
+        text_container.setStyleSheet("background: transparent; border: none;")
+        text_layout = QVBoxLayout(text_container)
+        text_layout.setContentsMargins(0, 5, 0, 5)
+        text_layout.setSpacing(2)
+        text_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
+        t_lbl = QLabel(title)
+        t_lbl.setStyleSheet("color: white; font-size: 15px; font-weight: bold; background: transparent; border: none;")
+        
+        d_lbl = QLabel(details)
+        d_lbl.setStyleSheet("color: #D1D5DB; font-size: 11px; background: transparent; border: none;")
+        
+        time_lbl = QLabel(time_str)
+        time_lbl.setStyleSheet("color: #6B7280; font-size: 10px; background: transparent; border: none;")
+
+        text_layout.addWidget(t_lbl)
+        text_layout.addWidget(d_lbl)
+        text_layout.addWidget(time_lbl)
+
+        badge = QPushButton(priority_text)
+        badge.setFixedSize(115, 26)
+        badge.setStyleSheet(f"QPushButton {{ background-color: {main_color}; color: #FFFFFF; border: none; border-radius: 6px; font-size: 10px; font-weight: bold; }}")
+
+        card_layout.addWidget(accent_bar)
+        card_layout.addWidget(dot_indicator, alignment=Qt.AlignmentFlag.AlignVCenter)
+        card_layout.addWidget(text_container, stretch=1)
+        card_layout.addWidget(badge, alignment=Qt.AlignmentFlag.AlignVCenter)
+        
+        return alert_card
 
     def browse_log_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -550,28 +489,79 @@ class Dashboard(QWidget):
             self.default_log_path = file_path
 
     def update_dashboard_ui_labels(self, metrics):
-        total_label = self.lbl_total.findChild(QLabel) if hasattr(self.lbl_total, 'findChild') else self.lbl_total
-        success_label = self.lbl_success.findChild(QLabel) if hasattr(self.lbl_success, 'findChild') else self.lbl_success
-        failed_label = self.lbl_failed.findChild(QLabel) if hasattr(self.lbl_failed, 'findChild') else self.lbl_failed
 
-        if total_label:
-            total_label.setText(str(metrics.get("total_entries", "0")))
-        if success_label:
-            success_label.setText(str(metrics.get("success_logins", "0")))
-        if failed_label:
-            failed_label.setText(str(metrics.get("failed_logins", "0")))
+        total = metrics.get("total_entries", 0)
+        success = metrics.get("success_logins", 0)
+        failed = metrics.get("failed_logins", 0)
+        suspicious = metrics.get("suspicious_events", 0)
+
+        if hasattr(self, 'lbl_total') and self.lbl_total:
+            self.lbl_total.setText(str(total))
+        if hasattr(self, 'lbl_success') and self.lbl_success:
+            self.lbl_success.setText(str(success))
+        if hasattr(self, 'lbl_failed') and self.lbl_failed:
+            self.lbl_failed.setText(str(failed))
+        if hasattr(self, 'lbl_suspicious') and self.lbl_suspicious:
+            self.lbl_suspicious.setText(str(suspicious))
+
+        if hasattr(self, 'lbl_ips') and self.lbl_ips:
+            ip_data = metrics.get("unique_ips", 0)
+            if isinstance(ip_data, (list, set, dict)):
+                self.lbl_ips.setText(str(len(ip_data)))
+            else:
+                self.lbl_ips.setText(str(ip_data))
+
+        total_logins = success + failed
+        success_pct = (success / total_logins  * 100) if total_logins > 0 else 0.0
+        failed_pct = (failed / total_logins * 100) if total_logins > 0 else 0.0
+        suspicious_pct = (suspicious / failed * 100) if failed > 0 else 0.0
+
+        if hasattr(self, 'lbl_success_sub') and self.lbl_success_sub:
+            self.lbl_success_sub.setText(f"{success_pct:.1f}% of logins")
+        if hasattr(self, 'lbl_failed_sub') and self.lbl_failed_sub:
+            self.lbl_failed_sub.setText(f"{failed_pct:.1f}% of logins")
+        if hasattr(self, 'lbl_suspicious_sub') and self.lbl_suspicious_sub:
+            self.lbl_suspicious_sub.setText(f"{suspicious_pct:.1f}% threat weight")
+
+        if hasattr(self, 'alerts_list_layout'):
+            while self.alerts_list_layout.count():
+                item = self.alerts_list_layout.takeAt(0)
+                w = item.widget()
+                if w:
+                    w.deleteLater()
+
+            recent_alerts = metrics.get("recent_alerts", [])
+
+            if not recent_alerts:
+                empty_lbl = QLabel("✓ No system errors or threat alerts found in this file.")
+                empty_lbl.setStyleSheet("color: #10B981; font-size: 13px; font-style: italic; border: none; padding: 10px;")
+                self.alerts_list_layout.addWidget(empty_lbl)
+            else:
+                for severity, message in recent_alerts[:4]:
+                    color = "#EF4444" if severity == "CRITICAL" else "#F59E0B"
+                    bg = "#2D1A1E" if severity == "CRITICAL" else "#2D2415"
+                    badge_text = "High Priority" if severity == "CRITICAL" else "Medium Priority"
+                    
+                    card = self._build_alert_card_widget(severity, message, "Just Now", badge_text, color, bg)
+                    self.alerts_list_layout.addWidget(card)
 
     def trigger_log_analysis(self):
         self.parser = LogParserEngine(self.default_log_path)
         self.live_metrics = self.parser.parse_logs()
 
+        self.live_metrics["top_ips"] = self.live_metrics.get("ip_counts", {})
+        self.analysis_page.load_analysis_metrics(self.live_metrics)
+
         self.update_dashboard_ui_labels(self.live_metrics)
 
         file_name = QFileInfo(self.default_log_path).fileName()
+
         self.log_viewer_page.load_log_file(self.default_log_path)
         self.visualizer_page.render_metrics_charts(self.live_metrics)
         self.reports_page.generate_historical_summary(self.live_metrics, file_name)
         self.analysis_page.load_analysis_metrics(self.live_metrics)
+
+        self.switch_page(0)
         print("Re-parsing complete! Live metrics refreshed.")
 
     # NAVIGATION FUNCTION
